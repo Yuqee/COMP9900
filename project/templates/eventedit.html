@@ -1,0 +1,236 @@
+{% extends 'base.html' %}
+{% block title %}
+EventBooker | Edit Event
+{% endblock %}
+
+{% block jscode %}
+<script>
+window.onload = function() {
+  var search_type_Sel = document.getElementById("search_type");
+  var search_input_type = document.getElementById("search_keyword");
+
+  search_type_Sel.onchange = function() {
+    
+    if (search_type_Sel.value == 'title'){
+      search_input_type.type = 'search'
+    }
+    if (search_type_Sel.value == 'startDate'){
+      search_input_type.type = 'date'
+    }
+    if (search_type_Sel.value == 'location'){
+      search_input_type.type = 'search'
+    } 
+  }
+}
+
+  function checkFileType(elem){
+    var filetype = elem.value.match(/\.([^\.]+)$/)[1];
+    switch (filetype) {
+      case 'gif':
+      case 'jpeg':
+      case 'png':
+        break;
+      default:
+        alert('Please only upload GIF, JPEG or PNG files. Thanks.');
+        elem.value = '';
+    }
+  };
+</script>
+{% endblock %}
+
+{% block customstyle %}
+  <style>
+    .container-space{
+      padding: 1%;
+    }
+    .filter-green{
+      filter: invert(27%) sepia(87%) saturate(1486%) hue-rotate(93deg) brightness(97%) contrast(104%);
+    }
+    .filter-red{
+      filter: invert(16%) sepia(98%) saturate(5309%) hue-rotate(357deg) brightness(98%) contrast(117%);
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+      <a class="eventbooker link-underline link-underline-opacity-0" href="{{ url_for('index') }}">
+        <section class="wrapper" >
+          <div class="top">EventBooker</div>
+          <div class="bottom" aria-hidden="true">EventBooker</div>
+        </section>
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          {% if not session['emailaddress'] %}
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('login') }}">Login</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('register') }}">Register</a>
+          </li>
+          {% endif %}
+  
+          {% if session['is_host']%}
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('addevents') }}">Add Events</a>
+          </li>
+          {% endif %}
+  
+          {% if session['emailaddress'] %}
+          {% if not session['is_host'] %}
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('tickets') }}">Tickets</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('wishlist') }}">Wishlist</a>
+          </li>
+          {% endif %}
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+          </li>
+          {% endif %}
+        </ul>
+        <form class="d-flex w-auto" method="post" action="{{ url_for('index') }}">
+          <select class="form-select me-2" name="search_type" id="search_type" aria-label="Search type">
+            <option value="title">Title</option>
+            <option value="startDate">Start Date</option>
+            <option value="location">Location</option>
+          </select>
+          <input class="form-control" type="search" name="search_keyword" id="search_keyword" placeholder="Search event..."
+            aria-label="Search">
+          <button class="btn btn-outline-success search" type="submit"><i class="bi bi-search"></i></button>
+        </form>
+      </div>
+    </div>
+  </nav>  
+
+  <div class="main mainpadding">
+    <div class="text-center container container-space">
+      <div>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div>
+          {% for category, message in messages %}
+          <div class="alert alert-danger" role="alert">{{message}}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+      </div>
+      
+      <h1>Edit your Event</h1>
+      <form id="form-general" method="POST" class="form-signin" action="{{ url_for('event_update', event_id=event_id)}}" enctype="multipart/form-data">
+        <div class="container-space"></div>
+        <div class="d-grid gap-2 col-6 mx-auto container-space">
+          <div class="form-floating">
+            <input type="text" class="form-control" id="title" placeholder="Concert" name="title" value="{{ event_data['title'] }}">
+            <label for="title">Event Title</label>
+          </div>
+          <div class="form-floating">
+            <input type="datetime-local" class="form-control" id="start_datetime" name="start_datetime" value="{{ event_data['startDate'] }}T{{ event_data['startTime'] }}">
+            <label for="start_datetime">Start Date&Time</label>
+          </div>
+          <div class="form-floating">
+            <input type="datetime-local" class="form-control" id="end_datetime" name="end_datetime" value="{{ event_data['endDate'] }}T{{ event_data['endTime'] }}">
+            <label for="end_datetime">End Date&Time</label>
+          </div>
+          <div class="form-floating">
+            <input type="text" class="form-control" id="location" placeholder="Sydney" name="location" value="{{ event_data['location'] }}">
+            <label for="location">Location</label>
+          </div>
+          <style>
+            .poster-image {
+              max-width: 100%;
+              height: auto;
+            }
+          </style>
+
+          <div class="mb-3">
+            <label for="formFile" class="form-label">Old Poster</label>
+            <div>
+              <img src="data:image/png;base64, {{ poster64 }}" alt="Current Poster" class="poster-image">
+            </div>
+          </div>
+
+		  
+          <div class="mb-3">
+            <label for="formFile" class="form-label">Upload your poster</label>
+            <input class="form-control" type="file" accept="image/gif, image/jpeg, image/png" id="formFile" name="poster" onchange="checkFileType(this)">
+          </div>
+        </div>
+		
+        <div class="d-grid gap-2 col-6 mx-auto container-space">
+          <button class="btn btn-lg btn-primary" type="submit" style="margin-bottom: 20px;" onclick="var e=this;setTimeout(function(){e.disabled=true; e.innerText='Updating...'},0);return true;">Confirm Edit</button>
+        </div>
+
+		
+          
+        
+      </form>
+      <h1>Fire Sale!!!</h1>
+      <form id="form-general" method="POST" class="form-signin" action="{{ url_for('firesales', event_id = event_id) }}" enctype="multipart/form-data">
+        <div class="container-space"></div>        
+        <div class="mb-3">
+          <label for="layoutUI" class="form-label">Update the price of the seats!</label>
+        </div>
+        <div class="container" id="layoutUI">
+          <div class="row">
+            <div class="container">
+              <div class="form-check form-check-inline space-between2">
+                <div class="container" id="priceForm-{{layouts['id']}}">
+                  <div class="d-flex align-items-center justify-content-center">
+                    <div class="d-flex align-items-center justify-content-center">
+                      <div class="container">
+                        {% for row in range(layouts['row']) %}
+                          <div>            
+                            {% for col in range(layouts['column']) %}
+                              {% if seats[row][col]%}
+                                <span>
+                                  <img src="../static/sofa.svg" class="filter-red">
+                                </span>
+                              {% else %}
+                                <span>
+                                  <img src="../static/sofa.svg" class="filter-green">
+                                </span>
+                              {% endif %}
+                            {% endfor %}            
+                          </div>
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="card card-body">
+                      {% for price in event_prices %}
+                        <div>
+                          <label class="form-check-label" for="priceFor-{{price['forZone']}}">Row {{price['startRow']}} to row {{price['endRow']}} </label>
+                          {% if price['origPriceId'] == -1 %}
+                            <label class="form-check-label" for="priceFor-{{price['forZone']}}">Original Price: ${{ price['price'] }}</label>
+                          {% else %} 
+                            <label class="form-check-label" for="priceFor-{{price['forZone']}}">Original Price: ${{ price['oldPrice'] }}</label>
+                          {% endif %}
+                          <br>
+                          <label class="form-check-label" for="priceFor-{{price['forZone']}}">Current Price: $</label>
+                          <input type="number" step="0.01" min="0" name="priceFor-{{price['forZone']}}" value="{{ price['price'] }}">
+                          
+                        </div>
+                      {% endfor %}
+                      <div class="d-grid gap-2 col-12 mx-auto container-space">
+                        <button class="btn btn-lg btn-primary" type="submit" onclick="var e=this;setTimeout(function(){e.disabled=true; e.innerText='Updating...'},0);return true;">Fire Sales!</button>
+                      </div>
+                  </div>
+                </div> 
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}
+

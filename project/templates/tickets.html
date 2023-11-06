@@ -1,0 +1,412 @@
+{% extends 'base.html' %}
+{% block title %}
+EventBooker | Tickets
+{% endblock %}
+
+{% block jscode %}
+<script>
+window.onload = function() {
+  var search_type_Sel = document.getElementById("search_type");
+  var search_input_type = document.getElementById("search_keyword");
+
+  search_type_Sel.onchange = function() {
+    
+    if (search_type_Sel.value == 'title'){
+      search_input_type.type = 'search'
+    }
+    if (search_type_Sel.value == 'startDate'){
+      search_input_type.type = 'date'
+    }
+    if (search_type_Sel.value == 'location'){
+      search_input_type.type = 'search'
+    } 
+  }
+}
+</script>
+{% endblock %}
+
+{% block content %}
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+      <a class="eventbooker link-underline link-underline-opacity-0" href="{{ url_for('index') }}">
+        <section class="wrapper" >
+          <div class="top">EventBooker</div>
+          <div class="bottom" aria-hidden="true">EventBooker</div>
+        </section>
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          {% if session['emailaddress'] %}
+            {% if not session['is_host'] %}
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('tickets') }}">Tickets</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('wishlist') }}">Wishlist</a>
+            </li>
+            {% endif %}
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+            </li>
+          {% endif %}
+        </ul>
+        <form class="d-flex w-auto" method="post" action="{{ url_for('index') }}">
+          <select class="form-select me-2" name="search_type" id="search_type" aria-label="Search type">
+            <option value="title">Title</option>
+            <option value="startDate">Start Date</option>
+            <option value="location">Location</option>
+          </select>
+          <input class="form-control" type="search" name="search_keyword" id="search_keyword" placeholder="Search event..."
+            aria-label="Search">
+          <button class="btn btn-outline-success search" type="submit"><i class="bi bi-search"></i></button>
+        </form>
+      </div>
+    </div>
+  </nav>  
+  <div class="main mainpadding">
+    <div class="text-center container container-space">
+      <div>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div>
+          {% for category, message in messages %}
+          <div class="alert alert-danger" role="alert">{{message}}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+      </div>
+    </div>
+  <h3><i>My Tickets</i></h3>
+  <div id="ticketContainer" class="mb-5">
+    <!-- Each ticket will be generated here -->
+  </div>
+
+  <h3><i>Cancelled Tickets</i></h3>
+  <div id="cancelledContainer" class="mb-5">
+    <!-- Each cancelled ticket will be generated here -->
+  </div>
+
+  <h3><i>Past Tickets</i></h3>
+  <div id="pastContainer" class="mb-5">
+    <!-- Each past ticket will be generated here -->
+  </div>
+
+  <div class="modal fade" id="ticketModal" tabindex="-1" aria-labelledby="ticketModalLabel" style="display: none;" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="ticketModalLabel">Ticket Cancellation</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          Please confirm that you are going to cancel this ticket.
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <form action="{{ url_for('cancelTicket', fromPage='tickets', id='', eventTitle='')}}" method="post" id="modalCancelButton">
+            <button class="btn btn-primary" onclick="var e=this;setTimeout(function(){e.disabled=true; e.innerText='Cancelling'},0);return true;">Cancel</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <!-- Bootstrap JavaScript dependencies -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!--This part is used to generate the ticketTable whose row number equals to the variable 'length' -->
+  <script>
+    var soldTickets = {{ soldTickets | tojson }};
+    var events = {{ events | tojson }};
+    var transactions = {{ transactions | tojson }};
+    var length = {{ length }};
+    var curDate = new Date();
+
+    const ticketModal = document.getElementById('ticketModal');
+    if (ticketModal) {
+      var action_comm = document.getElementById('modalCancelButton').getAttribute('action');
+      action_comm = action_comm.substring(0, action_comm.length-1);
+      ticketModal.addEventListener('show.bs.modal', event => {
+        const btn = event.relatedTarget;
+        const ticketId = btn.getAttribute('id');
+        const eventTitle = btn.getAttribute('eventTitle');
+        document.getElementById('modalCancelButton').setAttribute('action', action_comm + ticketId + '/' + eventTitle);
+      })
+    }
+
+    function isWithinNDays(date, n) {
+      var startDate = new Date(date);
+
+      var diffInMs = startDate.getTime() - curDate.getTime();
+      var diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+      
+      if (diffInMs < 0) {
+        return false;
+      }
+      return diffInDays <= n;
+    }
+
+    function generateTicketsTable() {
+      var ticketContainer = document.getElementById('ticketContainer');
+  
+      // Clear current table
+      ticketContainer.innerHTML = '';
+  
+      var table = document.createElement('table');
+      table.classList.add('table');
+  
+      // Generate the headers
+      var tableHead = document.createElement('thead');
+      var headerRow = document.createElement('tr');
+      var headers = ['Event Title', 'Start Datetime ~ End Datetime', 'Row&Column', 'Transaction Date', 'Price','Action'];
+
+      headers.forEach(function (header) {
+        var headerCell = document.createElement('th');
+        headerCell.innerText = header;
+        headerRow.appendChild(headerCell);
+      });
+
+      tableHead.appendChild(headerRow);
+      table.appendChild(tableHead);
+
+      var tableBody = document.createElement('tbody');
+
+      // Generate the ticket-row dynamically
+      for (var i = 0; i < length; i++) {
+        var ticketDate = new Date(events[i]['startDate'] + ' ' + events[i]['startTime']);
+        // only show the 'valid' tickets and the on going tickets in My Events
+        if (soldTickets[i]['status'] === 'v' && ticketDate >= curDate) {
+          eid = events[i]['id'];
+          var row = document.createElement('tr');
+
+          var titleCell = document.createElement('td');
+          var title = document.createElement('a');
+          title.classList.add('link-underline');
+          title.classList.add('link-underline-opacity-0');
+          title.href = "{{ url_for('event', id = '') }}" + eid;
+          title.innerText = events[i]['title'];
+          titleCell.appendChild(title);
+          row.append(titleCell);
+
+          var dateTimeCell = document.createElement('td');
+          var startDate = events[i]['startDate'];
+          var startTime = events[i]['startTime'];
+          var endDate = events[i]['endDate'];
+          var endTime = events[i]['endTime'];
+          dateTimeCell.innerText = startDate + ' ' + startTime + '~' + endDate + ' ' + endTime;
+          row.append(dateTimeCell);
+
+          var rowColumnCell = document.createElement('td');
+          var ticketRow = soldTickets[i]['row'];
+          var ticketColumn = soldTickets[i]['column'];
+          rowColumnCell.innerText = 'r' + ticketRow + 'c' + ticketColumn;
+          row.append(rowColumnCell);
+
+          var transactionDateCell = document.createElement('td');
+          var transactionDate = transactions[i]['transactionDate'];
+          transactionDateCell.innerText = transactionDate;
+          row.append(transactionDateCell);
+
+          var priceCell = document.createElement('td');
+          var price = soldTickets[i]['soldPrice'];
+          priceCell.innerText = price + '$';
+          row.append(priceCell);
+
+          var cancelCell = document.createElement('td');
+          var cancelbtn = document.createElement('button');
+          cancelbtn.classList.add('btn', 'btn-primary');
+          cancelbtn.innerText = 'Cancel';
+          cancelbtn.setAttribute('data-bs-toggle', 'modal');
+          cancelbtn.setAttribute('data-bs-target', '#ticketModal');
+          cancelbtn.setAttribute('id', soldTickets[i]['id']);
+          cancelbtn.setAttribute('eventTitle', events[i]['title']);
+
+          // only valid tickets and tickets within 7 days cannot be cancelled
+          if (soldTickets[i]['status'] === 'c' || isWithinNDays(startDate, 7)) {
+            cancelbtn.disabled = true;
+          }
+          cancelCell.appendChild(cancelbtn);
+          row.append(cancelCell);
+
+          tableBody.append(row);
+          table.appendChild(tableBody);
+          ticketContainer.appendChild(table);
+        }
+      }
+
+      var note = document.createElement('div');
+      note.innerText = "Note: you cannot cancel a ticket due in 7 days.";
+      ticketContainer.appendChild(note);
+    }
+    
+    function generateCancelledTable() {
+      var cancelledContainer = document.getElementById('cancelledContainer');
+  
+      // Clear current table
+      cancelledContainer.innerHTML = '';
+  
+      var table = document.createElement('table');
+      table.classList.add('table');
+
+      // Generate the headers
+      var tableHead = document.createElement('thead');
+      var headerRow = document.createElement('tr');
+      var headers = ['Event Title', 'Start Datetime ~ End Datetime', 'Row&Column', 'Transaction Date', 'Price','Action'];
+
+      headers.forEach(function (header) {
+        var headerCell = document.createElement('th');
+        headerCell.innerText = header;
+        headerRow.appendChild(headerCell);
+      });
+
+      tableHead.appendChild(headerRow);
+      table.appendChild(tableHead);
+
+      var tableBody = document.createElement('tbody');
+
+      // Generate the ticket-row dynamically
+      for (var i = 0; i < length; i++) {
+        var ticketDate = new Date(events[i]['startDate'] + ' ' + events[i]['startTime']);
+        // only show cancelled tickets in the "Cancelled Tickets"
+        if (soldTickets[i]['status'] === 'c') {
+          eid = events[i]['id'];
+          var row = document.createElement('tr');
+
+          var titleCell = document.createElement('td');
+          var title = document.createElement('a');
+          
+          title.classList.add('link-underline');
+          title.classList.add('link-underline-opacity-0');
+          title.href = "{{ url_for('event', id = '') }}" + eid;
+          title.innerText = events[i]['title'];
+          titleCell.appendChild(title);
+          row.append(titleCell);
+
+          var dateTimeCell = document.createElement('td');
+          var startDate = events[i]['startDate'];
+          var startTime = events[i]['startTime'];
+          var endDate = events[i]['endDate'];
+          var endTime = events[i]['endTime'];
+          dateTimeCell.innerText = startDate + ' ' + startTime + '~' + endDate + ' ' + endTime;
+          row.append(dateTimeCell);
+
+          var rowColumnCell = document.createElement('td');
+          var ticketRow = soldTickets[i]['row'];
+          var ticketColumn = soldTickets[i]['column'];
+          rowColumnCell.innerText = 'r' + ticketRow + 'c' + ticketColumn;
+          row.append(rowColumnCell);
+
+          var transactionDateCell = document.createElement('td');
+          var transactionDate = transactions[i]['transactionDate'];
+          transactionDateCell.innerText = transactionDate;
+          row.append(transactionDateCell);
+
+          var priceCell = document.createElement('td');
+          var price = soldTickets[i]['soldPrice'];
+          priceCell.innerText = price + '$';
+          row.append(priceCell);
+
+          var cancelCell = document.createElement('td');
+          cancelCell.style.fontWeight = 'bold';
+          cancelCell.innerText = 'Cancelled';
+          row.append(cancelCell);
+
+          tableBody.append(row);
+          table.appendChild(tableBody);
+          cancelledContainer.appendChild(table);
+        }
+      }
+    }
+
+    function generatePastTable() {
+      var pastContainer = document.getElementById('pastContainer');
+  
+      // Clear current table
+      pastContainer.innerHTML = '';
+  
+      var table = document.createElement('table');
+      table.classList.add('table');
+
+      // Generate the headers
+      var tableHead = document.createElement('thead');
+      var headerRow = document.createElement('tr');
+      var headers = ['Event Title', 'Start Datetime ~ End Datetime', 'Row&Column', 'Transaction Date', 'Price','Finished'];
+
+      headers.forEach(function (header) {
+        var headerCell = document.createElement('th');
+        headerCell.innerText = header;
+        headerRow.appendChild(headerCell);
+      });
+
+      tableHead.appendChild(headerRow);
+      table.appendChild(tableHead);
+
+      var tableBody = document.createElement('tbody');
+
+      // Generate the ticket-row dynamically
+      for (var i = 0; i < length; i++) {
+        var ticketDate = new Date(events[i]['startDate'] + ' ' + events[i]['startTime']);
+        // only show past tickets in the "past Tickets"
+        if (ticketDate < curDate) {
+          eid = events[i]['id'];
+          var row = document.createElement('tr');   
+
+          var titleCell = document.createElement('td');
+          var title = document.createElement('a');
+          title.classList.add('link-underline');
+          title.classList.add('link-underline-opacity-0');
+          title.href = "{{ url_for('event', id = '') }}" + eid;
+          title.innerText = events[i]['title'];
+          titleCell.appendChild(title);
+          row.append(titleCell);
+
+          var dateTimeCell = document.createElement('td');
+          var startDate = events[i]['startDate'];
+          var startTime = events[i]['startTime'];
+          var endDate = events[i]['endDate'];
+          var endTime = events[i]['endTime'];
+          dateTimeCell.innerText = startDate + ' ' + startTime + '~' + endDate + ' ' + endTime;
+          row.append(dateTimeCell);
+
+          var rowColumnCell = document.createElement('td');
+          var ticketRow = soldTickets[i]['row'];
+          var ticketColumn = soldTickets[i]['column'];
+          rowColumnCell.innerText = 'r' + ticketRow + 'c' + ticketColumn;
+          row.append(rowColumnCell);
+
+          var transactionDateCell = document.createElement('td');
+          var transactionDate = transactions[i]['transactionDate'];
+          transactionDateCell.innerText = transactionDate;
+          row.append(transactionDateCell);
+
+          var priceCell = document.createElement('td');
+          var price = soldTickets[i]['soldPrice'];
+          priceCell.innerText = price + '$';
+          row.append(priceCell);
+
+          var doneCell = document.createElement('td');
+          doneCell.style.fontWeight = 'bold';
+          doneCell.innerText = '-';
+          row.append(doneCell);
+
+          tableBody.append(row);
+          table.appendChild(tableBody);
+          pastContainer.appendChild(table);
+        }
+      }
+    }
+
+
+    window.onload = function() {
+        generateTicketsTable();
+        generateCancelledTable();
+        generatePastTable();
+    };
+  </script>
+  
+{% endblock %}

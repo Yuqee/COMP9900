@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% block title %}
+EventBooker | Register
+{% endblock %}
+
+{% block jscode %}
+<script>
+window.onload = function() {
+  var search_type_Sel = document.getElementById("search_type");
+  var search_input_type = document.getElementById("search_keyword");
+
+  search_type_Sel.onchange = function() {
+    
+    if (search_type_Sel.value == 'title'){
+      search_input_type.type = 'search'
+    }
+    if (search_type_Sel.value == 'startDate'){
+      search_input_type.type = 'date'
+    }
+    if (search_type_Sel.value == 'location'){
+      search_input_type.type = 'search'
+    } 
+  }
+}
+</script>
+{% endblock %}
+
+{% block customstyle %}
+<style>
+  .container-space {
+    padding: 1%;
+  }
+
+  .space-between1 {
+    padding-left: 36%;
+  }
+
+  .space-between2 {
+    padding-right: 36%;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container-fluid">
+    <a class="eventbooker link-underline link-underline-opacity-0" href="{{ url_for('index') }}">
+      <section class="wrapper" >
+        <div class="top">EventBooker</div>
+        <div class="bottom" aria-hidden="true">EventBooker</div>
+      </section>
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
+      aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('login') }}">Login</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('register') }}">Register</a>
+        </li>
+      </ul>
+      <form class="d-flex w-auto" method="post" action="{{ url_for('index') }}">
+        <select class="form-select me-2" name="search_type" id="search_type" aria-label="Search type">
+          <option value="title">Title</option>
+          <option value="startDate">Start Date</option>
+          <option value="location">Location</option>
+        </select>
+        <input class="form-control" type="search" name="search_keyword" id="search_keyword" placeholder="Search event..."
+          aria-label="Search">
+        <button class="btn btn-outline-success search" type="submit"><i class="bi bi-search"></i></button>
+      </form>
+    </div>
+  </div>
+</nav>
+
+<div class="text-center container container-space main">
+  <form method="POST" class="form-signin" action="{{ url_for('register')}}">
+    <div class="container-space"></div>
+    <div class="d-grid gap-2 col-6 mx-auto container-space">
+      <div class="form-floating">
+        <input type="text" class="form-control" id="username" placeholder="name@example.com" name="username">
+        <label for="username">Username</label>
+      </div>
+      <div class="form-floating">
+        <input type="email" class="form-control" id="email" placeholder="name@example.com" name="email">
+        <label for="email">Email address</label>
+      </div>
+      <div class="form-floating">
+        <input type="password" class="form-control" id="password" placeholder="Password" name="password">
+        <label for="password">Password</label>
+      </div>
+      <div class="form-floating">
+        <input type="password" class="form-control" id="retypePassword" placeholder="Password" name="retypePassword">
+        <label for="retypePassword">Retype Password</label>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="form-check form-check-inline space-between2">
+        <input type="radio" class="form-check-input" name="type" id="isUser" value="user">
+        <label class="form-check-label" for="isUser">User</label>
+      </div>
+      <div class="form-check form-check-inline space-between1">
+        <input type="radio" class="form-check-input" name="type" id="isHost" value="host">
+        <label class="form-check-label" for="isHost">Host</label>
+      </div>
+    </div>
+
+    <div class="d-grid gap-2 col-6 mx-auto container-space">
+      <div>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div>
+          {% for category, message in messages %}
+          <div class="alert alert-danger" role="alert">{{message}}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+      </div>
+      <button class="btn btn-lg btn-primary" type="submit">Register</button>
+    </div>
+    <p class="mt-3 mb-3 text-muted">&copy;2023-2024</p>
+  </form>
+</div>
+{% endblock %}

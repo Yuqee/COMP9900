@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+{% block title %}
+EventBooker | Wish List
+{% endblock %}
+
+{% block jscode %}
+<script>
+window.onload = function() {
+  var search_type_Sel = document.getElementById("search_type");
+  var search_input_type = document.getElementById("search_keyword");
+
+  search_type_Sel.onchange = function() {
+    
+    if (search_type_Sel.value == 'title'){
+      search_input_type.type = 'search'
+    }
+    if (search_type_Sel.value == 'startDate'){
+      search_input_type.type = 'date'
+    }
+    if (search_type_Sel.value == 'location'){
+      search_input_type.type = 'search'
+    } 
+  }
+}
+</script>
+{% endblock %}
+
+{% block content %}
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+      <a class="eventbooker link-underline link-underline-opacity-0" href="{{ url_for('index') }}">
+        <section class="wrapper" >
+          <div class="top">EventBooker</div>
+          <div class="bottom" aria-hidden="true">EventBooker</div>
+        </section>
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          {% if session['emailaddress'] %}
+            {% if not session['is_host'] %}
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('tickets') }}">Tickets</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('wishlist') }}">Wishlist</a>
+            </li>
+            {% endif %}
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+            </li>
+            {% endif %}
+        </ul>
+        <form class="d-flex w-auto" method="post" action="{{ url_for('index') }}">
+          <select class="form-select me-2" name="search_type" id="search_type" aria-label="Search type">
+            <option value="title">Title</option>
+            <option value="startDate">Start Date</option>
+            <option value="location">Location</option>
+          </select>
+          <input class="form-control" type="search" name="search_keyword" id="search_keyword" placeholder="Search event..."
+            aria-label="Search">
+          <button class="btn btn-outline-success search" type="submit"><i class="bi bi-search"></i></button>
+        </form>
+      </div>
+    </div>
+  </nav>  
+  
+  <div class="main">
+  <h1>Wishlist</h1>
+  <section class="pt-5 pb-5 shadow-sm">
+    {% for index in range(0,events|length) %}
+    {% if index % 3 == 0%}
+    <div class="container">
+      <div class="row">
+        {% endif%}
+        <div class="col-lg-4 mb-3 d-flex align-items-stretch">
+          <div class="card">
+            <img src="data:image/png;base64, {{ imgs[index] }}" class="card-img-top" alt="Card Image">
+            <div class="card-body d-flex flex-column">
+              <h5 class="card-title">{{ events[index]['title'] }}</h5>
+              <p class="card-text mb-4">Event Start Date: {{ events[index]['startDate'] }}</p>
+              <p class="card-text mb-4">Event Start Time: {{ events[index]['startTime'] }}</p>
+              <p class="card-text mb-4">Event End Date: {{ events[index]['endDate'] }}</p>
+              <p class="card-text mb-4">Event End Time: {{ events[index]['endTime'] }}</p>
+              <p class="card-text mb-4">Hosted by: {{ events[index]['host'] }}</p>
+              <p class="card-text mb-4">Event price starting from: {{ events[index]['min_price'] }}</p>
+              <div class="btn-group">
+              <a href="{{ url_for('event', id = events[index]['id']) }}" class="btn btn-primary text-white mt-auto align-self-start">Buy</a>
+              {% if wishlist[index] == None %}
+              <form action="{{url_for('wishlist')}} " method="post">
+               <button class="btn btn-primary" value = "{{ events[index]['id'] }}" name ="addwishlist" type="submit">
+                 <i class="bi bi-bookmark-star"></i>
+                 <!-- Add to wishlist -->
+                 Add to Wishlist
+              </button>
+             </form>
+              {% else %}
+              <form action="{{url_for('wishlist')}} " method="post">
+              <button class="btn btn-outline-danger" value="{{ events[index]['id'] }}" name ="removewishlist" type="submit">
+               <i class="bi bi-bookmark-star"></i>
+                Wishlist Remove
+             </button>
+             </form>
+             {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% if index%3 == 2%}
+      </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </section>
+  </div>
+{% endblock %}

@@ -1,0 +1,134 @@
+table {
+    table-layout: fixed;
+  }
+  th {
+    gap:2vw;
+    overflow:hidden; 
+    white-space:nowrap;
+  }
+  th:first-child {
+    width: 20vw;
+  }
+  th:nth-child(2) {
+    width: 20vw;
+  }
+a.nav-link {
+    font-weight:600;
+    font-size: x-large;
+}
+.navbar{
+    top: 0;
+    position: fixed;
+    width: 100%;
+    overflow: hidden;
+    z-index: 3;
+}
+.search {
+    margin-left:2%;
+}
+.asklogin{                                
+    text-align: center;
+}
+.main{
+    margin-top:100px;
+    z-index: 1;
+    margin-bottom: 40px;
+}
+.mainpadding {
+    padding-left: 3%;
+    padding-right: 3%; 
+}
+section{
+    padding-left: 3%;
+    padding-right: 3%;
+}
+h1{
+    text-align: center;
+    font-weight: bold;
+}
+.eventbooker {
+    margin-right: 1%;
+}
+.event_sub {
+   text-align: center;
+}
+/* .comment-container {
+    height: 15vh;
+} */
+.card-img-top {
+    object-fit: cover;
+    height :300px;
+    width : 300px;
+    z-index: 1;
+
+}
+.card {
+    border-radius: 20px;
+    z-index: 2;
+    border-width: 4px;
+    min-width: 308px;
+}
+.card:hover {
+    background-color: #9a9bf7;
+}
+.btn-group {
+    flex-direction: row;
+    gap:10px;
+}
+.btn-group>.btn-group:not(:last-child)>.btn, .btn-group>.btn.dropdown-toggle-split:first-child, .btn-group>.btn:not(:last-child):not(.dropdown-toggle) {
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+.btn {
+    border-radius: 8px;
+}
+.link-underline-opacity-0 {
+    font-weight: bolder;
+    color: #7678ED;
+}
+p.mb-2,li.eventdetail  {
+    font-weight: bold;
+}
+:root {
+    --background-color:#212529 ;
+    --text-color: hsl(0, 0%, 100%);
+  }
+  body {
+    margin: 0;
+  }
+  .wrapper {
+    display: grid;
+    background-color: var(--background-color);
+    font-family: "Oswald", sans-serif;
+    font-weight: 700;
+    font-size:xx-large;
+    color: var(--text-color);
+  }
+  
+  .wrapper > div {
+    grid-area: 1/1/-1/-1;
+  }
+  .top {
+    clip-path: polygon(0% 0%, 100% 0%, 100% 48%, 0% 58%);
+  }
+  .bottom {
+    clip-path: polygon(0% 60%, 100% 50%, 100% 100%, 0% 100%);
+    color: transparent;
+    background: -webkit-linear-gradient(177deg, black 53%, var(--text-color) 65%);
+    background: linear-gradient(177deg, black 53%, var(--text-color) 65%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    transform: translateX(-0.02em);
+  }
+  /* .w-auto {
+    width: 50%;
+
+  } */
+  #search_type {
+    width: 15vw;
+  }
+  #search_keyword {
+    width: 15vw;
+  }
+  

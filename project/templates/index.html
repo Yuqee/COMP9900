@@ -1,0 +1,375 @@
+{% extends 'base.html' %}
+{% block title %}
+EventBooker | Home
+{% endblock %}
+
+{% block jscode %}
+<script>
+window.onload = function() {
+  var search_type_Sel = document.getElementById("search_type");
+  var search_input_type = document.getElementById("search_keyword");
+
+  search_type_Sel.onchange = function() {
+    
+    if (search_type_Sel.value == 'title'){
+      search_input_type.type = 'search'
+    }
+    if (search_type_Sel.value == 'startDate'){
+      search_input_type.type = 'date'
+    }
+    if (search_type_Sel.value == 'location'){
+      search_input_type.type = 'search'
+    } 
+  }
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container-fluid">
+    <a class="eventbooker link-underline link-underline-opacity-0" href="{{ url_for('index') }}">
+    <section class="wrapper" >
+      <div class="top">EventBooker</div>
+      <div class="bottom" aria-hidden="true">EventBooker</div>
+    </section>
+  </a>
+
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
+      aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        {% if not session['emailaddress'] %}
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('login') }}">Login</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('register') }}">Register</a>
+        </li>
+        {% endif %}
+
+        {% if session['is_host']%}
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('addevents') }}">Add Events</a>
+        </li>
+        {% endif %}
+
+        {% if session['emailaddress'] %}
+        {% if not session['is_host'] %}
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('tickets') }}">Tickets</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('wishlist') }}">Wishlist</a>
+        </li>
+        {% endif %}
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+        </li>
+        {% endif %}
+      </ul>
+      <form class="d-flex w-auto" method="post" action="">
+        <select class="form-select me-2" name="search_type" id="search_type" aria-label="Search type">
+          <option value="title">Title</option>
+          <option value="startDate">Start Date</option>
+          <option value="location">Location</option>
+        </select>
+        <input class="form-control input-sm" type="search" name="search_keyword" id="search_keyword" placeholder="Search event..."
+          aria-label="Search">
+          {% if not session['emailaddress'] %}
+            <a class="btn btn-outline-success search" data-bs-toggle="modal" data-bs-target="#registerModal"><i class="bi bi-search" ></i></a>
+          {% else %}
+            <button class="btn btn-outline-success search" type="submit"><i class="bi bi-search"></i></button>
+            
+          {% endif %}
+      </form>
+    </div>
+  </div>
+</nav>
+
+<div class="main">
+<!-- For host: events will be seperated into 3 groups, i.e. Upcoming Events, Cancelled Events and Past Events -->
+{% if session['is_host'] %}
+<!-- Upcoming Events -->
+<section class="pt-5 pb-5 shadow-sm">
+  <h1>Upcoming Events</h1>
+  <p class="event_sub"> All available events in next month.</p>
+  {% for index in range(0,upcoming_events|length) %}
+  {% if index % 3 == 0%}
+  <div class="container">
+    <div class="row">
+      {% endif%}
+      <div class="col-lg-4 mb-3 d-flex align-items-stretch">
+        <div class="card">
+          <img src="data:image/png;base64, {{ imgs[upcoming_events[index]['id']] }}" class="card-img-top" alt="Card Image">
+          <div class="card-body d-flex flex-column">
+            <h5 class="card-title">{{ upcoming_events[index]['title'] }}</h5>
+            <p class="card-text mb-3">Hosted by: {{ upcoming_events[index]['host'] }}</p>
+            <p class="card-text mb-3">Event Start At: {{ upcoming_events[index]['startDate']}} {{ upcoming_events[index]['startTime'] }}</p>
+            <p class="card-text mb-3">Event End At: {{ upcoming_events[index]['endDate']}} {{ upcoming_events[index]['endTime']}}</p>
+            <p class="card-text mb-3">Event location: {{ upcoming_events[index]['location']}}</p>
+            
+            <p class="card-text mb-3">event price starting from: ${{ upcoming_events[index]['min_price']}} </p>
+            
+            <div class="container d-flex flex-column justify-content-between" style="gap:5px;">
+              <a href="{{ url_for('event_edit', event_id=upcoming_events[index]['id']) }}" class="btn btn-primary text-white mt-auto">Edit</a>
+              <a href="{{ url_for('event', id=upcoming_events[index]['id']) }}" class="btn btn-primary text-white mt-auto">Detail</a>
+              <!-- Cancel event -->
+              {% if upcoming_events[index]['status'] == 'c' %}
+              <button type="button" class="btn btn-primary" disabled>Cancel Event</button>
+              {% else %}
+              <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#cancelModal" data-bs-whatever={{ upcoming_events[index]['id'] }}>Cancel Event</button>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% if index%3 == 2%}
+    </div>
+  </div>
+  {% endif %}
+  {% endfor %}
+</section>
+
+<!-- Cancelled Events -->
+<section class="pt-5 pb-5 shadow-sm">
+  <h1>Cancelled Events</h1>
+  {% for index in range(0,cancelled_events|length) %}
+  {% if index % 3 == 0%}
+  <div class="container">
+    <div class="row">
+      {% endif%}
+      <div class="col-lg-4 mb-3 d-flex align-items-stretch">
+        <div class="card">
+          <img src="data:image/png;base64, {{ imgs[cancelled_events[index]['id']] }}" class="card-img-top" alt="Card Image">
+          <div class="card-body d-flex flex-column">
+            <h5 class="card-title">{{ cancelled_events[index]['title'] }}</h5>
+            <p class="card-text mb-3">Hosted by: {{ cancelled_events[index]['host'] }}</p>
+            <p class="card-text mb-3">Event Start At: {{ cancelled_events[index]['startDate']}} {{ cancelled_events[index]['startTime'] }}</p>
+            <p class="card-text mb-3">Event End At: {{ cancelled_events[index]['endDate']}} {{ cancelled_events[index]['endTime']}}</p>
+            <p class="card-text mb-3">Event location: {{ cancelled_events[index]['location']}}</p>
+            
+            <p class="card-text mb-3">event price starting from: ${{ cancelled_events[index]['min_price']}} </p>
+          </div>
+        </div>
+      </div>
+      {% if index%3 == 2%}
+    </div>
+  </div>
+  {% endif %}
+  {% endfor %}
+</section>
+
+<!-- Past Events -->
+<section class="pt-5 pb-5 shadow-sm">
+  <h1>Past Events</h1>
+  {% for index in range(0,past_events|length) %}
+  {% if index % 3 == 0%}
+  <div class="container">
+    <div class="row">
+      {% endif%}
+      <div class="col-lg-4 mb-3 d-flex align-items-stretch">
+        <div class="card">
+          <img src="data:image/png;base64, {{ imgs[past_events[index]['id']] }}" class="card-img-top" alt="Card Image">
+          <div class="card-body d-flex flex-column">
+            <h5 class="card-title">{{ past_events[index]['title'] }}</h5>
+            <p class="card-text mb-3">Hosted by: {{ past_events[index]['host'] }}</p>
+            <p class="card-text mb-3">Event Start At: {{ past_events[index]['startDate']}} {{ past_events[index]['startTime'] }}</p>
+            <p class="card-text mb-3">Event End At: {{ past_events[index]['endDate']}} {{ past_events[index]['endTime']}}</p>
+            <p class="card-text mb-3">Event location: {{ past_events[index]['location']}}</p>
+            
+            <p class="card-text mb-3">event price starting from: ${{ past_events[index]['min_price']}} </p>
+          </div>
+        </div>
+      </div>
+      {% if index%3 == 2%}
+    </div>
+  </div>
+  {% endif %}
+  {% endfor %}
+</section>
+
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" style="display: none;" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="cancelModalLabel">Event Cancellation</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Please confirm that you are going to cancel this event.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <form action="{{ url_for('cancelEvent', fromPage='index', id ='')}}" method="post" id="cancel_button">
+          <button type="submit" class="btn btn-primary" onclick="var e=this;setTimeout(function(){e.disabled=true; e.innerText='Cancelling'},0);return true;">Cancel</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- script for handling event cancellation -->
+<script>
+  const cancelModal = document.getElementById('cancelModal')
+    if (cancelModal) {
+      const action_comm = document.getElementById('cancel_button').getAttribute("action")
+      cancelModal.addEventListener('show.bs.modal', event => {
+        // Button that triggered the modal
+        const button = event.relatedTarget
+        // Extract info from data-bs-* attributes
+        const recipient = button.getAttribute('data-bs-whatever')
+
+        document.getElementById('cancel_button').setAttribute("action", action_comm  + recipient)
+      })
+    }
+  </script>
+
+<!-- for prospective customers and registered customers -->
+{% else %} 
+{% if not session['emailaddress'] %}
+<section class="shadow-sm asklogin">
+  <h5>
+    <span style="color: #7678ED; font-size: 50px;">...</span>
+    Please  <a href="{{ url_for('login') }}" style="color: #7678ED; font-weight: bold;">Login</a> or 
+    <a href="{{ url_for('register') }}" style="color: #fc814a; font-weight: bold;">Register</a> to view more upcoming events!
+    <span style = "color: #fc814a;font-size: 50px;">...</span>
+  </h5>
+</section>
+{% endif %}
+<!-- fire sale events -->
+<section class="pt-5 pb-5 shadow-sm">
+  <h1>Fire Sale Events</h1>
+  <p class="event_sub"> Explore the events which is currently available for SALE.</p>
+  {% for index in range(0,sale_events|length) %}
+  {% if index % 3 == 0%}
+  <div class="container">
+    <div class="row">
+      {% endif%}
+      <div class="col-lg-4 mb-3 d-flex align-items-stretch">
+        <div class="card">
+          <img src="data:image/png;base64, {{ imgs[sale_events[index]['id']] }}" class="card-img-top" alt="Card Image">
+          <div class="card-body d-flex flex-column">
+            <h5 class="card-title">{{ sale_events[index]['title'] }}</h5>
+            <p class="card-text mb-3">Hosted by: {{ sale_events[index]['host'] }}</p>
+            <p class="card-text mb-3">Event Start At: {{ sale_events[index]['startDate']}} {{ sale_events[index]['startTime'] }}</p>
+            <p class="card-text mb-3">Event End At: {{ sale_events[index]['endDate']}} {{ sale_events[index]['endTime']}}</p>
+            <p class="card-text mb-3">Event location: {{ sale_events[index]['location']}}</p>
+            
+            <p class="card-text mb-3">event price starting from: ${{ sale_events[index]['min_price']}} </p>
+
+            {% if not session['emailaddress'] %}
+            <a href="{{ url_for('event', id = sale_events[index]['id']) }}" class="btn btn-primary text-white mt-auto align-self-start">Detail</a>
+
+            {% endif %}
+
+            {% if session['emailaddress'] %}
+            {% if not session['is_host'] %}
+             <div class="btn-group">
+              <a href="{{ url_for('event', id = sale_events[index]['id']) }}" class="btn btn-primary">Buy</a>
+              {% if wishlist[sale_events[index]['id']] == None %}
+              <form action="{{url_for('index')}} " method="post">
+               <button class="btn btn-primary" value = "{{ sale_events[index]['id'] }}" name ="addwishlist" type="submit">
+                 <i class="bi bi-bookmark-star"></i>
+                 <!-- Add to wishlist -->
+                 Add to Wishlist
+              </button>
+             </form>
+              {% else %}
+              <form action="{{url_for('index')}} " method="post">
+              <button class="btn btn-outline-danger" value="{{ sale_events[index]['id'] }}" name ="removewishlist" type="submit">
+               <i class="bi bi-bookmark-star"></i>
+               Wishlist Remove
+             </button>
+             </form>
+             {% endif %}
+            </div>
+            {% endif %}
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% if index%3 == 2%}
+    </div>
+  </div>
+  {% endif %}
+  {% endfor %}
+</section>
+
+<!-- non sale events -->
+<section class="pt-5 pb-5 shadow-sm">
+  <h1>Upcoming Events</h1>
+  <p class="event_sub"> All available upcoming events.</p>
+  {% for index in range(0,non_sale_events|length) %}
+  {% if index % 3 == 0%}
+  <div class="container">
+    <div class="row">
+      {% endif%}
+      <div class="col-lg-4 mb-3 d-flex align-items-stretch">
+        <div class="card">
+          <img src="data:image/png;base64, {{ imgs[non_sale_events[index]['id']] }}" class="card-img-top" alt="Card Image">
+          <div class="card-body d-flex flex-column">
+            <h5 class="card-title">{{ non_sale_events[index]['title'] }}</h5>
+            <p class="card-text mb-3">Hosted by: {{ non_sale_events[index]['host'] }}</p>
+            <p class="card-text mb-3">Event Start At: {{ non_sale_events[index]['startDate']}} {{ non_sale_events[index]['startTime'] }}</p>
+            <p class="card-text mb-3">Event End At: {{ non_sale_events[index]['endDate']}} {{ non_sale_events[index]['endTime']}}</p>
+            <p class="card-text mb-3">Event location: {{ non_sale_events[index]['location']}}</p>
+            
+            <p class="card-text mb-3">event price starting from: ${{ non_sale_events[index]['min_price']}} </p>
+
+            {% if not session['emailaddress'] %}
+            <a href="{{ url_for('event', id = non_sale_events[index]['id']) }}" class="btn btn-primary text-white mt-auto align-self-start">Detail</a>
+
+            {% endif %}
+
+            {% if session['emailaddress'] %}
+            {% if not session['is_host'] %}
+              <div class="btn-group">
+              <a href="{{ url_for('event', id = non_sale_events[index]['id']) }}" class="btn btn-primary text-white mt-auto align-self-start">Buy</a>
+              {% if wishlist[non_sale_events[index]['id']] == None %}
+              <form action="{{url_for('index')}} " method="post">
+               <button class="btn btn-primary" value = "{{ non_sale_events[index]['id'] }}" name ="addwishlist" type="submit">
+                 <i class="bi bi-bookmark-star"></i>
+                 <!-- Add to wishlist -->
+                 Add to Wishlist
+              </button>
+             </form>
+              {% else %}
+              <form action="{{url_for('index')}} " method="post">
+              <button class="btn btn-outline-danger" value="{{ non_sale_events[index]['id'] }}" name ="removewishlist" type="submit">
+               <i class="bi bi-bookmark-star"></i>
+               Wishlist Remove
+             </button>
+             </form>
+             {% endif %}
+            </div>
+            {% endif %}
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% if index%3 == 2%}
+    </div>
+  </div>
+  {% endif %}
+  {% endfor %}
+</section>
+</div>
+
+<!-- Modal that reminds prospective customers to register -->
+<div class="modal fade" id="registerModal" tabindex="-1" aria-labelledby="registerModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="registerModalLabel">Reminder</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Please login or register an account to search.
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
